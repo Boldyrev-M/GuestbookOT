@@ -26,9 +26,53 @@ class Dbase // класс для работы с MySQL
     public function __construct()
     {
         global $db_config;
-        $this->mysql = new mysqli($db_config['db_address'], $db_config['db_user'], $db_config['db_password'], $db_config['db_name'], $db_config['db_port']);
+        $this->mysql = new mysqli($db_config['db_address'],
+                                  $db_config['db_user'],
+                                  $db_config['db_password'],
+                                  "",
+                                  $db_config['db_port']);
+        /* check connection */
+        if (mysqli_connect_errno()) {
+            printf("Connect failed: %s\n", mysqli_connect_error());
+            exit();
+        }
         $this->mysql->set_charset("utf8");
         $this->mysql->query("SET NAMES utf8");
+
+        $this->mysql->query("SET lc_time_names = 'ru_RU'");
+        $this->mysql->query("SET NAMES 'utf8'");
+        // connect to 'guestbook' database
+        $createdbforuse="CREATE DATABASE IF NOT EXISTS `".$db_config['db_name']."`";
+//        print_r($createdbforuse);
+//        echo "<br>";
+        $this->mysql->query($createdbforuse);
+        $this->mysql->select_db($db_config['db_name']);
+        /* return name of current default database */
+        if ($result = $this->mysql->query("SELECT DATABASE()")) {
+            $row = $result->fetch_row();
+//            printf("Default database is %s.\n", $row[0]);
+//           correct DB chosen
+            $result->close();
+        }
+        // and creating tables
+        $this->mysql->query("CREATE TABLE IF NOT EXISTS `gb_messages`(
+        `id` INT(11) AUTO_INCREMENT NOT NULL,
+        `username` VARCHAR(50) COLLATE utf8_unicode_ci NOT NULL,
+        `text` VARCHAR(255) COLLATE utf8_unicode_ci NOT NULL,
+        `date` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`)
+        )
+        ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
+        ");
+        $this->mysql->query('CREATE TABLE IF NOT EXISTS `gb_comments`(
+        `id` INT(11)  NOT NULL AUTO_INCREMENT,
+        `messageid` INTEGER NOT NULL,
+        `text` VARCHAR(255) COLLATE utf8_unicode_ci NOT NULL,
+        `date` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`id`)
+        )
+        ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci
+        ');
     }
 
     public function NewMessage($name, $text)
